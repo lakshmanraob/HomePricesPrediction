@@ -6,12 +6,26 @@ Created on Wed Dec 19 14:08:39 2018
 @author: labattula
 """
 
+"""
+Importing neccessary libraries
+"""
+"""
+ RandomForestRegressor choosen to incluse many shallow trees and compare the results
+ and give the predicted value
+"""
 from sklearn.ensemble import RandomForestRegressor
+"""
+used train_test_split method to split data to train and build the model and predict the 
+outcome basing and compare the same with the actual value 
+"""
 from sklearn.model_selection import train_test_split
+"""
+mean_absolute_error will be used for comaring the predicted value with the absolute value.
+In lay man terms, it is a comparision of one technique of measurement versus an alternative technique of measurement
+"""
 from sklearn.metrics import mean_absolute_error
+
 import pandas as pd
-
-
 
 melborne_file_path = '/Users/labattula/Documents/lakshman/ML/PythonDataScience/HousingPrices/melb_data.csv'
 
