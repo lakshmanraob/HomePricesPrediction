@@ -18,14 +18,20 @@ file_path = '/Users/labattula/Documents/lakshman/ML/PythonDataScience/HousingPri
 
 data = pd.read_csv(file_path)
 
+# Target value
 y = data.SalePrice
 
+# values to consider to perform the prediction
 X = data.drop(['SalePrice'],axis=1).select_dtypes(exclude=['object'])
 
+# splitting the data using standard train test split technique
 train_X,test_X,train_y,test_y = train_test_split(X.as_matrix(),y.as_matrix(),test_size=0.25)
 
+# inputer for imputing the missing values
 my_imputer = Imputer()
 
+# simple Imputer this will fill the nan values with the average of the existing values
+# There are few other options to apply like Imputation extension
 train_X = my_imputer.fit_transform(train_X)
 test_X = my_imputer.transform(test_X)
 
