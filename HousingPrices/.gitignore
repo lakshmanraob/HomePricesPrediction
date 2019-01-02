@@ -119,3 +119,6 @@ dmypy.json
 
 #html file
 ipython.html
+
+# ignoring the settings.json
+HousingPrices/twitter/settings.json
