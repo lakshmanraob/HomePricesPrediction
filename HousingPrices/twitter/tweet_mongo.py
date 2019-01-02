@@ -6,11 +6,12 @@ import pytz
 import tweepy
 from dateutil import parser
 from pymongo import MongoClient
+from pathlib import Path
 
-consumer_key = os.environ['CONSUMER_KEY']
-consumer_secret = os.environ['CONSUMER_SECRET']
-access_token = os.environ['ACCESS_TOKEN']
-access_token_secret = os.environ['ACCESS_TOKEN_SECRET']
+consumer_key = 'consumer_key'
+consumer_secret = 'consumer_secret'
+access_token = 'access_token'
+access_token_secret = 'access_token_secret'
 
 MONGO_HOST = 'mongodb://localhost/TwiiterApi'
 
@@ -62,7 +63,7 @@ class StreamListener(tweepy.StreamListener):
             if 'text' in raw_data:
                 # print(raw_data)
                 username = raw_data['user']['screen_name']
-                date_time_obj = datetime.datetime.strptime(raw_data['created_at'],'%a %b %d %H:%M:%S %z %Y')
+                date_time_obj = datetime.datetime.strptime(raw_data['created_at'], '%a %b %d %H:%M:%S %z %Y')
                 timezone = pytz.timezone('Asia/Calcutta')
                 print(date_time_obj.astimezone(timezone))
                 created_at = date_time_obj.astimezone(timezone)
@@ -88,9 +89,24 @@ class StreamListener(tweepy.StreamListener):
             print(e)
 
 
+class SetUpEnvironmentVariables:
+    def __init__(self, file_name):
+        self.file_name = file_name
+
+    def extract_data(self):
+        script_location = Path(__file__).absolute().parent
+        print(script_location)
+        with open(script_location / self.file_name, encoding='utf-8') as setting_file:
+            data = json.loads(setting_file.read())
+        return data
+
+
 if __name__ == '__main__':
-    auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
-    auth.set_access_token(access_token, access_token_secret)
+    env_set_up = SetUpEnvironmentVariables('settings.json')
+    data = env_set_up.extract_data()
+
+    auth = tweepy.OAuthHandler(data[consumer_key], data[consumer_secret])
+    auth.set_access_token(data[access_token], data[access_token_secret])
 
     api = tweepy.API(auth, wait_on_rate_limit=True)
 
@@ -98,6 +114,6 @@ if __name__ == '__main__':
     stream = tweepy.Stream(auth=auth,
                            listener=listener)
 
-    track = ['cricket', 'Cricket']
+    track = ['Modi2019Interview']
     stream.filter(track=track,
                   languages=['en'])
