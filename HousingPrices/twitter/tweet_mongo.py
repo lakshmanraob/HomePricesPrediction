@@ -7,6 +7,8 @@ import tweepy
 from dateutil import parser
 from pymongo import MongoClient
 from pathlib import Path
+import time
+import pandas as pd
 
 consumer_key = 'consumer_key'
 consumer_secret = 'consumer_secret'
@@ -35,7 +37,19 @@ def connect_mongodb(username, created_at, tweet, re_tweet_count, place, location
     print(tweet_id)
 
 
+"""
+This class is meant for the twitter stream, by default the time limit is given as 60 sec
+Can be increased based on the time you send as parameter
+"""
+
+
 class StreamListener(tweepy.StreamListener):
+    def __init__(self, time_limit=60, twitter_track=["Twitter"]):
+        self.start_time = time.time()
+        self.time_limit = time_limit
+        self.track = twitter_track
+        self.tweet_data = []
+
     """
     This method will be called upon the successful connection with Twitter API
     """
@@ -57,36 +71,58 @@ class StreamListener(tweepy.StreamListener):
     """
 
     def on_data(self, data):
-        try:
-            raw_data = json.loads(data)
+        if time.time() - self.start_time < self.time_limit:
+            tweet_element = {}
+            try:
+                raw_data = json.loads(data)
 
-            if 'text' in raw_data:
-                # print(raw_data)
-                username = raw_data['user']['screen_name']
-                date_time_obj = datetime.datetime.strptime(raw_data['created_at'], '%a %b %d %H:%M:%S %z %Y')
-                timezone = pytz.timezone('Asia/Calcutta')
-                print(date_time_obj.astimezone(timezone))
-                created_at = date_time_obj.astimezone(timezone)
-                tweet = raw_data['text']
-                re_tweet_count = raw_data['retweet_count']
+                if 'text' in raw_data:
+                    # print(raw_data)
+                    username = raw_data['user']['screen_name']
+                    date_time_obj = datetime.datetime.strptime(raw_data['created_at'], '%a %b %d %H:%M:%S %z %Y')
+                    timezone = pytz.timezone('Asia/Calcutta')
+                    print(date_time_obj.astimezone(timezone))
+                    created_at = date_time_obj.astimezone(timezone)
+                    tweet = raw_data['text']
+                    re_tweet_count = raw_data['retweet_count']
 
-                if raw_data['place'] is not None:
-                    place = raw_data['place']
-                    print(place)
-                else:
-                    place = None
+                    if raw_data['place'] is not None:
+                        place = raw_data['place']
+                        print(place)
+                    else:
+                        place = None
 
-                location = raw_data['user']['location']
+                    location = raw_data['user']['location']
 
-                connect_mongodb(username=username,
-                                created_at=created_at,
-                                tweet=tweet,
-                                re_tweet_count=re_tweet_count,
-                                place=place,
-                                location=location)
+                    tweet_element['username'] = username
+                    tweet_element['created_at'] = created_at
+                    tweet_element['tweet'] = tweet
+                    tweet_element['re_tweet_count'] = re_tweet_count
+                    tweet_element['place'] = place
+                    tweet_element['location'] = location
 
-        except EOFError as e:
-            print(e)
+                    self.tweet_data.append(tweet_element)
+                    # connect_mongodb(username=username,
+                    #                 created_at=created_at,
+                    #                 tweet=tweet,
+                    #                 re_tweet_count=re_tweet_count,
+                    #                 place=place,
+                    #                 location=location)
+            except EOFError as e:
+                print(e)
+                return False
+            return True
+        else:
+            print("Done with the twitter pull")
+            df = pd.DataFrame(self.tweet_data)
+            print(df.head())
+            return False
+
+
+"""
+This class is meant for setting up the twitter variables like
+consumer key etc
+"""
 
 
 class SetUpEnvironmentVariables:
@@ -102,6 +138,7 @@ class SetUpEnvironmentVariables:
 
 
 if __name__ == '__main__':
+    # creating the object for setting up the environment variables
     env_set_up = SetUpEnvironmentVariables('settings.json')
     data = env_set_up.extract_data()
 
@@ -109,11 +146,12 @@ if __name__ == '__main__':
     auth.set_access_token(data[access_token], data[access_token_secret])
 
     api = tweepy.API(auth, wait_on_rate_limit=True)
+    track = ['Modi2019Interview']
 
-    listener = StreamListener(api=api)
+    # creating the listener
+    listener = StreamListener(time_limit=30, twitter_track=track)
     stream = tweepy.Stream(auth=auth,
                            listener=listener)
 
-    track = ['Modi2019Interview']
     stream.filter(track=track,
                   languages=['en'])
