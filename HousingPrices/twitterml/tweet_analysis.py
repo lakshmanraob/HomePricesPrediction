@@ -275,6 +275,71 @@ class TweetObject:
         plt.show()
 
 
+"""
+For getting the history tweet for the specified tag
+"""
+
+
+class TwitterHistory:
+    def __init__(self, track):
+        self.track = track
+        self.tweet_data = []
+
+    def get_history(self):
+        print("in history")
+        for tweet in tweepy.Cursor(api.search, q=self.track, rpp=100, lang='en').items(300):
+            # for tweet in tweepy.Cursor(api.search, q=self.track, count=100, lang='en', result_type="recent").items(300):
+            tweet_element = {}
+            # print(tweet)
+            print(tweet.created_at, tweet.text)
+            username = tweet.user.screen_name  # raw_data['user']['screen_name']
+            # date_time_obj = datetime.datetime.strptime(tweet.created_at, '%Y-%m-%d %H:%M:%S')
+            # timezone = pytz.timezone('Asia/Calcutta')
+            # print(date_time_obj.astimezone(timezone))
+            # created_at = date_time_obj.astimezone(timezone)
+            created_at = tweet.created_at
+            tweet_text = tweet.text
+            re_tweet_count = tweet.retweet_count
+
+            if tweet.place is not None:
+                place = tweet.place
+                print(place)
+            else:
+                place = None
+
+            location = tweet.user.location
+
+            tweet_element['username'] = username
+            tweet_element['created_at'] = created_at
+            tweet_element['tweet'] = tweet_text
+            tweet_element['re_tweet_count'] = re_tweet_count
+            tweet_element['place'] = place
+            tweet_element['location'] = location
+
+            self.tweet_data.append(tweet_element)
+
+    def history_analysis(self):
+        print("In history analysis")
+        df = pd.DataFrame(self.tweet_data)
+        tweet_object = TweetObject()
+        clean_data = tweet_object.clean_tweets(df)
+        print(clean_data.head())
+        clean_data['sentiment'] = np.array([tweet_object.sentiment(x) for x in clean_data['clean_tweets']])
+        tweet_object.word_cloud(clean_data)
+
+        pos_tweets = [tweet for index, tweet in enumerate(clean_data["clean_tweets"]) if
+                      clean_data["sentiment"][index] > 0]
+        neg_tweets = [tweet for index, tweet in enumerate(clean_data["clean_tweets"]) if
+                      clean_data["sentiment"][index] < 0]
+        neu_tweets = [tweet for index, tweet in enumerate(clean_data["clean_tweets"]) if
+                      clean_data["sentiment"][index] == 0]
+
+        # Print results
+        print("percentage of positive tweets: {}%".format(100 * (len(pos_tweets) / len(clean_data['clean_tweets']))))
+        print("percentage of negative tweets: {}%".format(100 * (len(neg_tweets) / len(clean_data['clean_tweets']))))
+        print("percentage of neutral tweets: {}%".format(100 * (len(neu_tweets) / len(clean_data['clean_tweets']))))
+
+
 if __name__ == '__main__':
     # creating the object for setting up the environment variables
     env_set_up = SetUpEnvironmentVariables('settings.json')
@@ -284,13 +349,17 @@ if __name__ == '__main__':
     auth.set_access_token(data[access_token], data[access_token_secret])
 
     api = tweepy.API(auth, wait_on_rate_limit=True)
-    # track = ['Modi2019Interview']
-    track = ['Cricket']
+    track = ['Modi2019Interview']
+    # track = ['Cricket']
 
-    # creating the listener
-    listener = StreamListener(time_limit=30, twitter_track=track)
-    stream = tweepy.Stream(auth=auth,
-                           listener=listener)
+    # # creating the listener
+    # listener = StreamListener(time_limit=30, twitter_track=track)
+    # stream = tweepy.Stream(auth=auth,
+    #                        listener=listener)
+    #
+    # stream.filter(track=track,
+    #               languages=['en'])
 
-    stream.filter(track=track,
-                  languages=['en'])
+    tweet_history = TwitterHistory(track=track)
+    tweet_history.get_history()
+    tweet_history.history_analysis()
