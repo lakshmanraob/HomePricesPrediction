@@ -15,7 +15,7 @@ from pymongo import MongoClient
 
 
 class TweetObject:
-    def __init__(self, host, database):
+    def __init__(self, host=None, database=None):
         self.host = host
         self.database = database
 
